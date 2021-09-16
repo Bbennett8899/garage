@@ -1,4 +1,5 @@
 #include <Arduino.h>
+
 /*
  Basic MQTT example
  This sketch demonstrates the basic capabilities of the library.
@@ -168,116 +169,116 @@ void loop()
   client.publish("garage/Temp",t2);      //Publish to MQTT
   }
 
-//********************* Rain Counter ******************************
+  //********************* Rain Counter ******************************
 
-if(millis() > rainDelay + 2000){    //delay virtualWrite by 2sec
-      RainSensor = digitalRead(19);
-  
-  if(RainSensor != LastRainSensor){
-      Debounce++;
-      
-  if (Debounce >10){
-      raincounter++;                  // increment rain counter
-      LastRainSensor = RainSensor;
-      Debounce = 0;
-      rainDelay = millis();
+  if(millis() > rainDelay + 2000){    //delay virtualWrite by 2sec
+        RainSensor = digitalRead(19);
+    
+    if(RainSensor != LastRainSensor){
+        Debounce++;
+        
+    if (Debounce >10){
+        raincounter++;                  // increment rain counter
+        LastRainSensor = RainSensor;
+        Debounce = 0;
+        rainDelay = millis();
+        }
       }
-     }
+      }
+      
+
+  if(raincounter!=lastRainState){
+
+        static char raincounter1[2];
+        dtostrf(raincounter, 1, 0, raincounter1);
+        client.publish("garage/raincounter",raincounter1);  //Publish to MQTT
+
+        static char raincountermm1[2];
+        raincountermm = raincounter/conversion;
+        dtostrf(raincountermm, 1, 0, raincountermm1);
+        client.publish("garage/raincountermm",raincountermm1);  //Publish rain in mm to MQTT
+        
+        lastRainState = raincounter;
+    }
+
+  //********************* Roller Door *****************************  
+                                    //Roller Door 1 is house side Roller door 2 is Middle
+                                    //Read the reed switches,create three levels for blynk level display to look like a roller door
+                                    //Test for change and publish
+    Rdoor1down = digitalRead(9);   
+    Rdoor1up = digitalRead(10);
+        
+    if (Rdoor1up == LOW){            
+    door1 = 1;
+    }
+    if (Rdoor1down == HIGH && Rdoor1up == HIGH){
+    door1 = 2;
+    }
+    if (Rdoor1down == LOW){            
+    door1 = 3;   
+    }
+
+    if(door1 != lastdoor1){
+      static char door1a[2];
+        dtostrf(door1, 1, 0, door1a);
+
+        client.publish("garage/door1",door1a);  //Publish to MQTT
+    lastdoor1 = door1;
+    }
+
+    Rdoor2down = digitalRead(5);   
+    Rdoor2up = digitalRead(6);
+        
+    if (Rdoor2up == LOW){            
+    door2 = 1;
+    }
+    if (Rdoor2down == HIGH && Rdoor2up == HIGH){
+    door2 = 2;
+    }
+    if (Rdoor2down == LOW){            
+    door2 = 3;   
+    }
+
+    if(door2 != lastdoor2){
+    static char door2a[2];
+        dtostrf(door2, 1, 0, door2a);
+
+        client.publish("garage/door2",door2a);  //Publish to MQTT
+    lastdoor2 = door2;
+  }                                
+
+  //************************************* PIR **************************************                                  
+    {
+    pir = digitalRead(3);              //read PIR, If it changes send result.wait for chnage
+                                                                      
+            if (pir != lastpir) {           //check for change
+      
+        static char pir2[2];
+        dtostrf(pir, 1, 0, pir2);
+
+        client.publish("garage/pir",pir2);  //Publish to MQTT
+        lastpir = pir;          
+      }
     }
     
-
- if(raincounter!=lastRainState){
-
-      static char raincounter1[2];
-      dtostrf(raincounter, 1, 0, raincounter1);
-      client.publish("garage/raincounter",raincounter1);  //Publish to MQTT
-
-      static char raincountermm1[2];
-      raincountermm = raincounter/conversion;
-      dtostrf(raincountermm, 1, 0, raincountermm1);
-      client.publish("garage/raincountermm",raincountermm1);  //Publish rain in mm to MQTT
-       
-       lastRainState = raincounter;
-  }
-
-//********************* Roller Door *****************************  
-                                  //Roller Door 1 is house side Roller door 2 is Middle
-                                  //Read the reed switches,create three levels for blynk level display to look like a roller door
-                                  //Test for change and publish
-  Rdoor1down = digitalRead(9);   
-  Rdoor1up = digitalRead(10);
-       
-  if (Rdoor1up == LOW){            
-  door1 = 1;
-  }
-  if (Rdoor1down == HIGH && Rdoor1up == HIGH){
-  door1 = 2;
-  }
-  if (Rdoor1down == LOW){            
-  door1 = 3;   
-  }
-
-  if(door1 != lastdoor1){
-    static char door1a[2];
-      dtostrf(door1, 1, 0, door1a);
-
-      client.publish("garage/door1",door1a);  //Publish to MQTT
-  lastdoor1 = door1;
-  }
-
-  Rdoor2down = digitalRead(5);   
-  Rdoor2up = digitalRead(6);
-       
-  if (Rdoor2up == LOW){            
-  door2 = 1;
-  }
-  if (Rdoor2down == HIGH && Rdoor2up == HIGH){
-  door2 = 2;
-  }
-  if (Rdoor2down == LOW){            
-  door2 = 3;   
-  }
-
-  if(door2 != lastdoor2){
-  static char door2a[2];
-      dtostrf(door2, 1, 0, door2a);
-
-      client.publish("garage/door2",door2a);  //Publish to MQTT
-  lastdoor2 = door2;
-}                                
-
-//************************************* PIR **************************************                                  
+  //*************************************Sensor Light*********************************
   {
-  pir = digitalRead(3);              //read PIR, If it changes send result.wait for chnage
-                                                                     
-           if (pir != lastpir) {           //check for change
-    
-      static char pir2[2];
-      dtostrf(pir, 1, 0, pir2);
+    if (!client.connected()) {
+      reconnect();
+    }
+    client.loop();
 
-      client.publish("garage/pir",pir2);  //Publish to MQTT
-      lastpir = pir;          
-     }
+  int sensor = digitalRead(13);
+
+  if (sensor !=lastsensor)            //check for sensorlight change
+  {
+    static char sensor2[2];
+    dtostrf(sensor, 1, 0, sensor2);
+
+    client.publish("garage/sensor",sensor2);  //Publish to MQTT
+    Serial.println("sensor");
+    lastsensor = sensor;                  
   }
-  
-//*************************************Sensor Light*********************************
-{
-  if (!client.connected()) {
-    reconnect();
   }
-  client.loop();
-
-int sensor = digitalRead(13);
-
-if (sensor !=lastsensor)            //check for sensorlight change
-{
-  static char sensor2[2];
-  dtostrf(sensor, 1, 0, sensor2);
-
-  client.publish("garage/sensor",sensor2);  //Publish to MQTT
-  Serial.println("sensor");
-  lastsensor = sensor;                  
-}
-}
 }
 //************************** end of void loop ********************** 
