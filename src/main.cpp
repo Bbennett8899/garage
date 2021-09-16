@@ -150,10 +150,11 @@ void setup()
 
 void loop()
 {
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
+  
+    if (!client.connected()) {
+      reconnect();
+    }
+    client.loop();
 
   //****************** Temp/Humidity ***********************
 
@@ -267,11 +268,7 @@ void loop()
     
   //*************************************Sensor Light*********************************
   {
-    if (!client.connected()) {
-      reconnect();
-    }
-    client.loop();
-
+    
   int sensor = digitalRead(13);
 
   if (sensor !=lastsensor)            //check for sensorlight change
@@ -284,5 +281,5 @@ void loop()
     lastsensor = sensor;                  
   }
   }
-}
+ }
 //************************** end of void loop ********************** 
