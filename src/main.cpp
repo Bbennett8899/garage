@@ -25,7 +25,7 @@ DFRobot_SHT20    sht20;
 
 // Update these with values suitable for your network.
 byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
-IPAddress ip(192, 168, 68, 68);
+IPAddress ip(192, 168, 68, 151);
 IPAddress server(192, 168, 68, 65);
 
 unsigned long Tempdelay =millis();  //for delaying temp/humidity virtualWrite
@@ -150,6 +150,11 @@ void setup()
 
 void loop()
 {
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+
   //****************** Temp/Humidity ***********************
 
    if(millis() > Tempdelay + 2000){    //delay virtualWrite by 2sec
