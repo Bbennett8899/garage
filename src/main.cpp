@@ -87,10 +87,6 @@ void reconnect() {
     // Attempt to connect
     if (client.connect("arduinoClient")) {
       Serial.println("connected");
-      // Once connected, publish an announcement...
-      client.publish("outTopic","hello world");
-      // ... and resubscribe
-      client.subscribe("inTopic");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -104,13 +100,12 @@ void reconnect() {
 void setup()
 {
   Serial.begin(9600);
+  //set up mqtt
   client.setServer(server, 1883);
   client.setCallback(callback);
-
   Ethernet.begin(mac, ip);
   // Allow the hardware to sort itself out
   delay(1500);
-
   pinMode(3, INPUT_PULLUP);           //PIR pin
   pinMode(4, OUTPUT);                 //Make output and high for use as pull up resitor
   digitalWrite(4, HIGH);
@@ -127,37 +122,32 @@ void setup()
   pinMode(INPUT, 13);                  //Sensor light input, 5V = on
   pinMode(19, INPUT_PULLUP);          //Pin 19 rain sensor (pull high)
   digitalWrite(19, HIGH);
-                                        // Debug console
-  Serial.println("SHT20 Example!");
   sht20.initSHT20();                                  // Init SHT20 Sensor
   delay(100);
   sht20.checkSHT20();                                 // Check SHT20 Sensor
-    
   timeClient.begin();
 }
 
 void loop()
 {
-      if (!client.connected()) {
-      reconnect();
-    }
-    client.loop();
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
   // Run through noDelay functions
   timedelay.update();
   //****************** Temp/Humidity ***********************
 
-   if(millis() > Tempdelay + 2000){    //delay virtualWrite by 2sec
-      Tempdelay = millis(); 
-  
-  float h = sht20.readHumidity();                  // Read Humidity
-  float t = sht20.readTemperature();               // Read Temperature
- Serial.println("Test after Read Temp and Hum:");
- Serial.println(t, 1);
-  dtostrf(t, 1, 1, t2);               //convert to 2 dec places
-  dtostrf(h, 1, 1, h2);               //convert to 2 dec places
-                                     
-  client.publish("garage/Humidity",h2);  //Publish to MQTT
-  client.publish("garage/Temp",t2);      //Publish to MQTT
+  if(millis() > Tempdelay + 2000){    //delay virtualWrite by 2sec
+    Tempdelay = millis(); 
+    float h = sht20.readHumidity();                  // Read Humidity
+    float t = sht20.readTemperature();               // Read Temperature
+    Serial.println("Test after Read Temp and Hum:");
+    Serial.println(t, 1);
+    dtostrf(t, 1, 1, t2);               //convert to 2 dec places
+    dtostrf(h, 1, 1, h2);               //convert to 2 dec places                    
+    client.publish("garage/Humidity",h2);  //Publish to MQTT
+    client.publish("garage/Temp",t2);      //Publish to MQTT
   }
 
   //********************* Rain Counter ******************************
@@ -167,15 +157,14 @@ void loop()
     
     if(RainSensor != LastRainSensor){
         Debounce++;
-        
-    if (Debounce >10){
+      if (Debounce >10){
         raincounter++;                  // increment rain counter
         LastRainSensor = RainSensor;
         Debounce = 0;
         rainDelay = millis();
-        }
       }
-      }
+    }
+  }
       
   if(raincounter!=lastRainState){
 
@@ -210,65 +199,70 @@ void loop()
                                     //Roller Door 1 is house side Roller door 2 is Middle
                                     //Read the reed switches,create three levels 1,2,3
                                     //Test for change and publish
-    Rdoor1down = digitalRead(9);   
-    Rdoor1up = digitalRead(10);
-        
-    if (Rdoor1up == LOW){            
-      door1 = 1;    }
-    if (Rdoor1down == HIGH && Rdoor1up == HIGH){
-      door1 = 2;    }
-    if (Rdoor1down == LOW){            
-      door1 = 3;    }
+  Rdoor1down = digitalRead(9);   
+  Rdoor1up = digitalRead(10);
+      
+  if (Rdoor1up == LOW){            
+    door1 = 1;    
+  }
 
-    if(door1 != lastdoor1){
-      static char door1a[2];
-      dtostrf(door1, 2, 0, door1a);
+  if (Rdoor1down == HIGH && Rdoor1up == HIGH){
+    door1 = 2;   
+  }
 
-      client.publish("garage/door1",door1a);  //Publish to MQTT
-      lastdoor1 = door1;    }
+  if (Rdoor1down == LOW){            
+    door1 = 3;    
+  }
 
-    Rdoor2down = digitalRead(5);   
-    Rdoor2up = digitalRead(6);
-        
-    if (Rdoor2up == LOW){            
-      door2 = 1;    }
-    if (Rdoor2down == HIGH && Rdoor2up == HIGH){
-      door2 = 2;    }
-    if (Rdoor2down == LOW){            
-      door2 = 3;    }
+  if(door1 != lastdoor1){
+    static char door1a[2];
+    dtostrf(door1, 2, 0, door1a);
 
-    if(door2 != lastdoor2){
-      static char door2a[2];
-      dtostrf(door2, 2, 0, door2a);
+    client.publish("garage/door1",door1a);  //Publish to MQTT
+    lastdoor1 = door1;    
+  }
 
-      client.publish("garage/door2",door2a);  //Publish to MQTT
-      lastdoor2 = door2;    }                                
+  Rdoor2down = digitalRead(5);   
+  Rdoor2up = digitalRead(6);
+      
+  if (Rdoor2up == LOW){            
+    door2 = 1;    
+  }
+
+  if (Rdoor2down == HIGH && Rdoor2up == HIGH){
+    door2 = 2;    
+  }
+
+  if (Rdoor2down == LOW){            
+    door2 = 3;   
+  }
+
+  if(door2 != lastdoor2){
+    static char door2a[2];
+    dtostrf(door2, 2, 0, door2a);
+    client.publish("garage/door2",door2a);  //Publish to MQTT
+    lastdoor2 = door2;    
+  }                                
 
   //************************************* PIR **************************************                                  
-    {
-    pir = digitalRead(3);              //read PIR, If it changes send result.wait for chnage
+    
+  pir = digitalRead(3);              //read PIR, If it changes send result.wait for chnage
                                                                       
-      if (pir != lastpir) {           //check for change
-         static char pir2[2];
-        dtostrf(pir, 2, 0, pir2);
-
-        client.publish("garage/pir",pir2);  //Publish to MQTT
-        lastpir = pir;   }
-    }
-    
-  //*************************************Sensor Light*********************************
-  {
-    
+  if (pir != lastpir) {           //check for change
+    static char pir2[2];
+    dtostrf(pir, 2, 0, pir2);
+    client.publish("garage/pir",pir2);  //Publish to MQTT
+    lastpir = pir;   
+  }    
+  //*************************************Sensor Light*********************************    
   int sensor = digitalRead(13);
 
   if (sensor !=lastsensor) {           //check for sensorlight change
-     static char sensor2[2];
-     dtostrf(sensor, 2, 0, sensor2);
-
+    static char sensor2[2];
+    dtostrf(sensor, 2, 0, sensor2);
     client.publish("garage/sensor",sensor2);  //Publish to MQTT
     Serial.println("sensor");
     lastsensor = sensor;                  
-  }
   }
 }
 //************************** end of void loop ********************** 
