@@ -191,6 +191,9 @@ void loop()
       rainYesterdaymm = rainYesterday/conversion;
       dtostrf(rainYesterdaymm, 4, 1, rainYesterdaymm1);
       client.publish("garage/rainyesterdaymm",rainYesterdaymm1);  //Publish rain in mm to MQTT
+      static char Total1[2];
+      dtostrf(Total, 3, 0, Total1);
+      client.publish("garage/rainYesterday",Total1);  //Publish to MQTT
       Debounce2 = min;
     }
   }
