@@ -45,6 +45,7 @@ bool RainSensor = 0;
 bool LastRainSensor = 0;  
 int  Debounce = 0;                           
 int raincountermm =0;
+int rainYesterdaymm = 0;
 const int  rainPin = 2;    // the pin that the rain is attached to
 int raincounter = 0;       // counter for the number of rain pulses
 //int rainState = 0;         // current state of the sensor
@@ -187,6 +188,21 @@ void loop()
         client.publish("garage/raincountermm",raincountermm1);  //Publish rain in mm to MQTT
         
         lastRainState = raincounter;
+  if(hours == 9 && min == 00)  {    
+        rainYesterday = raincounter;
+        Total = Total + raincounter;
+        raincounter = 0;
+
+        static char rainYesterday1[2];
+        dtostrf(rainYesterday, 3, 0, rainYesterday1);
+        client.publish("garage/raincounter",raincounter1);  //Publish to MQTT
+
+        static char rainYesterdaymm1[2];
+        rainYesterdaymm = rainYesterday/conversion;
+        dtostrf(rainYesterdaymm, 4, 1, rainYesterdaymm1);
+        client.publish("garage/raincountermm",rainYesterdaymm1);  //Publish rain in mm to MQTT
+        }
+        
     }
 
   //********************* Roller Door *****************************  
