@@ -172,12 +172,12 @@ void loop()
   if(raincounter!=lastRainState){
 
         static char raincounter1[2];
-        dtostrf(raincounter, 1, 0, raincounter1);
+        dtostrf(raincounter, 3, 0, raincounter1);
         client.publish("garage/raincounter",raincounter1);  //Publish to MQTT
 
         static char raincountermm1[2];
         raincountermm = raincounter/conversion;
-        dtostrf(raincountermm, 1, 0, raincountermm1);
+        dtostrf(raincountermm, 4, 1, raincountermm1);
         client.publish("garage/raincountermm",raincountermm1);  //Publish rain in mm to MQTT
         
         lastRainState = raincounter;
@@ -199,7 +199,7 @@ void loop()
 
     if(door1 != lastdoor1){
       static char door1a[2];
-      dtostrf(door1, 1, 0, door1a);
+      dtostrf(door1, 2, 0, door1a);
 
       client.publish("garage/door1",door1a);  //Publish to MQTT
       lastdoor1 = door1;    }
@@ -216,7 +216,7 @@ void loop()
 
     if(door2 != lastdoor2){
       static char door2a[2];
-      dtostrf(door2, 1, 0, door2a);
+      dtostrf(door2, 2, 0, door2a);
 
       client.publish("garage/door2",door2a);  //Publish to MQTT
       lastdoor2 = door2;    }                                
@@ -227,7 +227,7 @@ void loop()
                                                                       
       if (pir != lastpir) {           //check for change
          static char pir2[2];
-        dtostrf(pir, 1, 0, pir2);
+        dtostrf(pir, 2, 0, pir2);
 
         client.publish("garage/pir",pir2);  //Publish to MQTT
         lastpir = pir;   }
@@ -240,7 +240,7 @@ void loop()
 
   if (sensor !=lastsensor) {           //check for sensorlight change
      static char sensor2[2];
-     dtostrf(sensor, 1, 0, sensor2);
+     dtostrf(sensor, 2, 0, sensor2);
 
     client.publish("garage/sensor",sensor2);  //Publish to MQTT
     Serial.println("sensor");
@@ -255,6 +255,6 @@ void time(){
   timeClient.update(); 
   Serial.print(timeClient.getHours());
   static char hours2[2];
-  dtostrf(hours, 1, 0, hours2);
+  dtostrf(hours, 3, 0, hours2);
   client.publish("garage/hours",hours2);
 }
