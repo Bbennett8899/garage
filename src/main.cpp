@@ -107,51 +107,35 @@ void setup()
   // Allow the hardware to sort itself out
   delay(1500);
 
-  pinMode(INPUT, 13);
-
   pinMode(3, INPUT_PULLUP);           //PIR pin
-
   pinMode(4, OUTPUT);                 //Make output and high for use as pull up resitor
   digitalWrite(4, HIGH);
   pinMode(5, INPUT_PULLUP);           //Roller Door 2 down
-
   pinMode(6, INPUT_PULLUP);           //Roller Door 2 up
-
   pinMode(7, OUTPUT);                 //Make output and high for use as pull up resitor
   digitalWrite(7, HIGH);
-  
   pinMode(8, OUTPUT);                 //Make output and high for use as pull up resitor
   digitalWrite(8, HIGH);
-  
   pinMode(9, INPUT_PULLUP);            //Roller Door 1 down
- 
-  pinMode(10, INPUT_PULLUP);            //Roller Door 1 up
-  
+  //*****does not like this****pinMode(10, INPUT_PULLUP);            //Roller Door 1 up
   pinMode(11, OUTPUT);                 //Make output and high for use as pull up resitor
   digitalWrite(11, HIGH);
-
   pinMode(INPUT, 13);                  //Sensor light input, 5V = on
-
   pinMode(19, INPUT_PULLUP);          //Pin 19 rain sensor (pull high)
   digitalWrite(19, HIGH);
-    
-                                       // Debug console
-
-
+                                        // Debug console
   Serial.println("SHT20 Example!");
     sht20.initSHT20();                                  // Init SHT20 Sensor
     delay(100);
     sht20.checkSHT20();                                 // Check SHT20 Sensor
     
-  pinMode(SDCARD_CS, OUTPUT);
-  digitalWrite(SDCARD_CS, HIGH);      // Deselect the SD card
-
+  //pinMode(SDCARD_CS, OUTPUT);
+  //digitalWrite(SDCARD_CS, HIGH);      // Deselect the SD card
 }
 
 void loop()
 {
-  
-    if (!client.connected()) {
+      if (!client.connected()) {
       reconnect();
     }
     client.loop();
@@ -168,8 +152,6 @@ void loop()
   dtostrf(t, 1, 1, t2);               //convert to 2 dec places
   dtostrf(h, 1, 1, h2);               //convert to 2 dec places
                                      
-  //Blynk.virtualWrite(V5, h);
-  //Blynk.virtualWrite(V6, t);
   client.publish("garage/Humidity",h2);  //Publish to MQTT
   client.publish("garage/Temp",t2);      //Publish to MQTT
   }
@@ -191,7 +173,6 @@ void loop()
       }
       }
       
-
   if(raincounter!=lastRainState){
 
         static char raincounter1[2];
@@ -208,62 +189,52 @@ void loop()
 
   //********************* Roller Door *****************************  
                                     //Roller Door 1 is house side Roller door 2 is Middle
-                                    //Read the reed switches,create three levels for blynk level display to look like a roller door
+                                    //Read the reed switches,create three levels 1,2,3
                                     //Test for change and publish
     Rdoor1down = digitalRead(9);   
     Rdoor1up = digitalRead(10);
         
     if (Rdoor1up == LOW){            
-    door1 = 1;
-    }
+      door1 = 1;    }
     if (Rdoor1down == HIGH && Rdoor1up == HIGH){
-    door1 = 2;
-    }
+      door1 = 2;    }
     if (Rdoor1down == LOW){            
-    door1 = 3;   
-    }
+      door1 = 3;    }
 
     if(door1 != lastdoor1){
       static char door1a[2];
-        dtostrf(door1, 1, 0, door1a);
+      dtostrf(door1, 1, 0, door1a);
 
-        client.publish("garage/door1",door1a);  //Publish to MQTT
-    lastdoor1 = door1;
-    }
+      client.publish("garage/door1",door1a);  //Publish to MQTT
+      lastdoor1 = door1;    }
 
     Rdoor2down = digitalRead(5);   
     Rdoor2up = digitalRead(6);
         
     if (Rdoor2up == LOW){            
-    door2 = 1;
-    }
+      door2 = 1;    }
     if (Rdoor2down == HIGH && Rdoor2up == HIGH){
-    door2 = 2;
-    }
+      door2 = 2;    }
     if (Rdoor2down == LOW){            
-    door2 = 3;   
-    }
+      door2 = 3;    }
 
     if(door2 != lastdoor2){
-    static char door2a[2];
-        dtostrf(door2, 1, 0, door2a);
+      static char door2a[2];
+      dtostrf(door2, 1, 0, door2a);
 
-        client.publish("garage/door2",door2a);  //Publish to MQTT
-    lastdoor2 = door2;
-  }                                
+      client.publish("garage/door2",door2a);  //Publish to MQTT
+      lastdoor2 = door2;    }                                
 
   //************************************* PIR **************************************                                  
     {
     pir = digitalRead(3);              //read PIR, If it changes send result.wait for chnage
                                                                       
-            if (pir != lastpir) {           //check for change
-      
-        static char pir2[2];
+      if (pir != lastpir) {           //check for change
+         static char pir2[2];
         dtostrf(pir, 1, 0, pir2);
 
         client.publish("garage/pir",pir2);  //Publish to MQTT
-        lastpir = pir;          
-      }
+        lastpir = pir;   }
     }
     
   //*************************************Sensor Light*********************************
@@ -271,10 +242,9 @@ void loop()
     
   int sensor = digitalRead(13);
 
-  if (sensor !=lastsensor)            //check for sensorlight change
-  {
-    static char sensor2[2];
-    dtostrf(sensor, 1, 0, sensor2);
+  if (sensor !=lastsensor) {           //check for sensorlight change
+     static char sensor2[2];
+     dtostrf(sensor, 1, 0, sensor2);
 
     client.publish("garage/sensor",sensor2);  //Publish to MQTT
     Serial.println("sensor");
