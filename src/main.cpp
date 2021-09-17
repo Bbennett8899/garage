@@ -3,6 +3,8 @@
 #include <Ethernet.h>
 #include <PubSubClient.h>
 #include <DFRobot_SHT20.h>
+#include <NTPClient.h>
+#include <EthernetUdp.h>
 
 #define W5100_CS  10
 #define SDCARD_CS 4
@@ -47,6 +49,16 @@ int Total = 0;             //running rain total counter
 float conversion = 2.8;     //Value to convert rain pulses to mm
 int SensorLight = 0;        //SensorLight set to off
 int lastsensor = 0;
+//Time
+int hours = 0;             //hour of day from UTP (24hr clock)
+
+const long utcOffsetInSeconds = -7200;
+
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+
+// Define NTP Client to get time
+EthernetUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "au.pool.ntp.org", utcOffsetInSeconds);
 
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
@@ -114,8 +126,7 @@ void setup()
   delay(100);
   sht20.checkSHT20();                                 // Check SHT20 Sensor
     
-  //pinMode(SDCARD_CS, OUTPUT);
-  //digitalWrite(SDCARD_CS, HIGH);      // Deselect the SD card
+  timeClient.begin();
 }
 
 void loop()
@@ -235,6 +246,16 @@ void loop()
     Serial.println("sensor");
     lastsensor = sensor;                  
   }
+  }
+   //**********************************Time***************************************
+  {
+  timeClient.update(); 
+  Serial.print(timeClient.getHours());
+    static char hours2[2];
+     dtostrf(hours, 1, 0, hours2);
+  client.publish("garage/hours",hours2);  //
+
+
   }
  }
 //************************** end of void loop ********************** 
