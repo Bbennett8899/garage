@@ -247,15 +247,14 @@ void loop()
     lastsensor = sensor;                  
   }
   }
-   //**********************************Time***************************************
-  {
-  //timeClient.update(); 
-  Serial.print(timeClient.getHours());
-    static char hours2[2];
-     dtostrf(hours, 1, 0, hours2);
-  client.publish("garage/hours",hours2);  //
-
-
-  }
- }
+}
 //************************** end of void loop ********************** 
+
+//**********************************Time***************************************
+void time(){
+  timeClient.update(); 
+  Serial.print(timeClient.getHours());
+  static char hours2[2];
+  dtostrf(hours, 1, 0, hours2);
+  client.publish("garage/hours",hours2);
+}
