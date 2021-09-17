@@ -1,18 +1,4 @@
 #include <Arduino.h>
-
-/*
- Basic MQTT example
- This sketch demonstrates the basic capabilities of the library.
- It connects to an MQTT server then:
-  - publishes "hello world" to the topic "outTopic"
-  - subscribes to the topic "inTopic", printing out any messages
-    it receives. NB - it assumes the received payloads are strings not binary
- It will reconnect to the server if the connection is lost using a blocking
- reconnect function. See the 'mqtt_reconnect_nonblocking' example for how to
- achieve the same result without blocking the main loop.
- 
-*/
-
 #include <SPI.h>
 #include <Ethernet.h>
 #include <PubSubClient.h>
@@ -25,12 +11,12 @@ DFRobot_SHT20    sht20;
 
 // Update these with values suitable for your network.
 byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
-IPAddress ip(192, 168, 68, 151);
-IPAddress server(192, 168, 68, 65);
+IPAddress ip(192, 168, 68, 151); //ip address of device
+IPAddress server(192, 168, 68, 65); //ip address of mqtt server
 
 unsigned long Tempdelay =millis();  //for delaying temp/humidity virtualWrite
 unsigned long rainDelay =millis();  //for delaying rain virtualWrite.
-
+//motion sensor
 int pir = 0;
 int lastpir = 0;
 char t2[16];
@@ -125,9 +111,9 @@ void setup()
   digitalWrite(19, HIGH);
                                         // Debug console
   Serial.println("SHT20 Example!");
-    sht20.initSHT20();                                  // Init SHT20 Sensor
-    delay(100);
-    sht20.checkSHT20();                                 // Check SHT20 Sensor
+  sht20.initSHT20();                                  // Init SHT20 Sensor
+  delay(100);
+  sht20.checkSHT20();                                 // Check SHT20 Sensor
     
   //pinMode(SDCARD_CS, OUTPUT);
   //digitalWrite(SDCARD_CS, HIGH);      // Deselect the SD card
