@@ -5,9 +5,14 @@
 #include <DFRobot_SHT20.h>
 #include <NTPClient.h>
 #include <EthernetUdp.h>
+#include <NoDelay.h>
 
 #define W5100_CS  10
 #define SDCARD_CS 4
+
+//setup noDelay
+void time();
+noDelay timedelay(60000, time);
 
 DFRobot_SHT20    sht20;
 
@@ -135,7 +140,8 @@ void loop()
       reconnect();
     }
     client.loop();
-
+  // Run through noDelay functions
+  timedelay.update();
   //****************** Temp/Humidity ***********************
 
    if(millis() > Tempdelay + 2000){    //delay virtualWrite by 2sec
