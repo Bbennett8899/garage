@@ -56,7 +56,8 @@ float conversion = 2.8;     //Value to convert rain pulses to mm
 int SensorLight = 0;        //SensorLight set to off
 int lastsensor = 0;
 //Time
-int hours = 0;             //hour of day from UTP (24hr clock)
+int hours = 0;             //hour of day from NTP server (24hr clock)
+int min = 0;               //minutes from NTP server
 
 const long utcOffsetInSeconds = -7200;
 
@@ -274,9 +275,19 @@ void loop()
 
 //**********************************Time***************************************
 void time(){
+  //get time
   timeClient.update(); 
-  Serial.print(timeClient.getHours());
-  static char hours2[2];
+  hours = timeClient.getHours();
+  Serial.print(hours);
+  min = timeClient.getMinutes();
+  Serial.println(min);
+  //publish time to mqtt server
+    //hours
+  static char hours2[3];
   dtostrf(hours, 3, 0, hours2);
-  client.publish("garage/hours",hours2);
+  client.publish("time/hours",hours2);
+    //mins
+  static char min2[3];
+  dtostrf(min, 4, 0, min2);
+  client.publish("time/mins",min2);
 }
