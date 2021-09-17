@@ -154,7 +154,7 @@ void loop()
   //********************* Rain Counter ******************************
 
   if(millis() > rainDelay + 2000){    //delay virtualWrite by 2sec
-        RainSensor = digitalRead(19);
+    RainSensor = digitalRead(19);
     
     if(RainSensor != LastRainSensor){
         Debounce++;
@@ -168,34 +168,30 @@ void loop()
   }
       
   if(raincounter!=lastRainState){
-
-        static char raincounter1[2];
-        dtostrf(raincounter, 3, 0, raincounter1);
-        client.publish("garage/raincounter",raincounter1);  //Publish to MQTT
-
-        static char raincountermm1[2];
-        raincountermm = raincounter/conversion;
-        dtostrf(raincountermm, 4, 1, raincountermm1);
-        client.publish("garage/raincountermm",raincountermm1);  //Publish rain in mm to MQTT
-        
-        lastRainState = raincounter;
+    static char raincounter1[2];
+    dtostrf(raincounter, 3, 0, raincounter1);
+    client.publish("garage/raincounter",raincounter1);  //Publish to MQTT
+    static char raincountermm1[2];
+    raincountermm = raincounter/conversion;
+    dtostrf(raincountermm, 4, 1, raincountermm1);
+    client.publish("garage/raincountermm",raincountermm1);  //Publish rain in mm to MQTT
+    lastRainState = raincounter;
   }
   if(hours == 9 && min == 00)  {   
 
     if(Debounce2 != min){
-        rainYesterday = raincounter;
-        Total = Total + raincounter;
-        raincounter = 0;
-        Debounce2 = 1;
-        static char rainYesterday1[2];
-        dtostrf(rainYesterday, 3, 0, rainYesterday1);
-        client.publish("garage/rainYesterday",rainYesterday1);  //Publish to MQTT
-
-        static char rainYesterdaymm1[2];
-        rainYesterdaymm = rainYesterday/conversion;
-        dtostrf(rainYesterdaymm, 4, 1, rainYesterdaymm1);
-        client.publish("garage/rainyesterdaymm",rainYesterdaymm1);  //Publish rain in mm to MQTT
-        Debounce2 = min;
+      rainYesterday = raincounter;
+      Total = Total + raincounter;
+      raincounter = 0;
+      Debounce2 = 1;
+      static char rainYesterday1[2];
+      dtostrf(rainYesterday, 3, 0, rainYesterday1);
+      client.publish("garage/rainYesterday",rainYesterday1);  //Publish to MQTT
+      static char rainYesterdaymm1[2];
+      rainYesterdaymm = rainYesterday/conversion;
+      dtostrf(rainYesterdaymm, 4, 1, rainYesterdaymm1);
+      client.publish("garage/rainyesterdaymm",rainYesterdaymm1);  //Publish rain in mm to MQTT
+      Debounce2 = min;
     }
   }
 
