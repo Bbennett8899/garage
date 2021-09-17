@@ -45,7 +45,6 @@ int lastRainState = 0;     // previous state of the button
 int rainYesterday = 0;     //location of yesterdays rainCount
 int Total = 0;             //running rain total counter
 float conversion = 2.8;     //Value to convert rain pulses to mm
-int resetdelay = -60000;    //timer widget reset delay pre set to approx = millis at start up
 int SensorLight = 0;        //SensorLight set to off
 int lastsensor = 0;
 
@@ -53,7 +52,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
-  for (int i=0; i<length;i++) {
+  for (unsigned int i=0; i<length;i++) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
