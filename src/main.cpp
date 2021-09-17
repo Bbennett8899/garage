@@ -249,7 +249,7 @@ void loop()
   }
    //**********************************Time***************************************
   {
-  timeClient.update(); 
+  //timeClient.update(); 
   Serial.print(timeClient.getHours());
     static char hours2[2];
      dtostrf(hours, 1, 0, hours2);
