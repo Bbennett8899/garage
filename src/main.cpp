@@ -12,7 +12,7 @@
 
 //setup noDelay
 void time();
-noDelay timedelay(60000, time);
+noDelay timedelay(10000, time);
 
 DFRobot_SHT20    sht20;
 
@@ -52,7 +52,8 @@ int raincounter = 0;       // counter for the number of rain pulses
 //int rainState = 0;         // current state of the sensor
 int lastRainState = 0;     // previous state of the button
 int rainYesterday = 0;     //location of yesterdays rainCount
-int Total = 0;             //running rain total counter
+int Total = 0;
+int rainTotalmm = 0;             //running rain total counter
 float conversion = 2.8;     //Value to convert rain pulses to mm
 int SensorLight = 0;        //SensorLight set to off
 int lastsensor = 0;
@@ -60,13 +61,13 @@ int lastsensor = 0;
 int hours = 0;             //hour of day from NTP server (24hr clock)
 int min = 0;               //minutes from NTP server
 
-const long utcOffsetInSeconds = -7200;
+const long utcOffsetInSeconds = 21600;      //36000 = hours +10 for Melb
 
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+char daysOfTheWeek[7][24] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 // Define NTP Client to get time
 EthernetUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "au.pool.ntp.org", utcOffsetInSeconds);
+NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
@@ -108,8 +109,8 @@ void setup()
   // Allow the hardware to sort itself out
   delay(1500);
   pinMode(3, INPUT_PULLUP);           //PIR pin
-  pinMode(4, OUTPUT);                 //Make output and high for use as pull up resitor
-  digitalWrite(4, HIGH);
+  //pinMode(4, OUTPUT);                 //Make output and high for use as pull up resitor
+  //digitalWrite(4, HIGH);
   pinMode(5, INPUT_PULLUP);           //Roller Door 2 down
   pinMode(6, INPUT_PULLUP);           //Roller Door 2 up
   pinMode(7, OUTPUT);                 //Make output and high for use as pull up resitor
@@ -144,7 +145,9 @@ void loop()
     float h = sht20.readHumidity();                  // Read Humidity
     float t = sht20.readTemperature();               // Read Temperature
     Serial.println("Test after Read Temp and Hum:");
-    Serial.println(t, 1);
+    Serial.print(t, 1);
+    Serial.println("   ");
+    Serial.println(h, 1);
     dtostrf(t, 1, 1, t2);               //convert to 2 dec places
     dtostrf(h, 1, 1, h2);               //convert to 2 dec places                    
     client.publish("garage/Humidity",h2);  //Publish to MQTT
@@ -158,6 +161,11 @@ void loop()
     
     if(RainSensor != LastRainSensor){
         Debounce++;
+         Serial.print("  RainSensor  ");
+         Serial.print(RainSensor);
+         Serial.print("  raincounter  ");
+         Serial.print(raincounter);
+
       if (Debounce >10){
         raincounter++;                  // increment rain counter
         LastRainSensor = RainSensor;
@@ -176,34 +184,51 @@ void loop()
     dtostrf(raincountermm, 4, 1, raincountermm1);
     client.publish("garage/raincountermm",raincountermm1);  //Publish rain in mm to MQTT
     lastRainState = raincounter;
-  }
-  if(hours == 9 && min == 00)  {   
+      }
+  Serial.print(daysOfTheWeek[timeClient.getDay()]);
+  Serial.print(" hours ");
+  Serial.print(  hours);
+  Serial.print(" min ");
+  Serial.print(  min);
 
+  if(hours == 9 && min == 00)  {   
     if(Debounce2 != min){
+  Serial.print(" hours Testerday loop ");
+  Serial.print(  hours);
+  Serial.print(" min ");
+  Serial.print(  min);
       rainYesterday = raincounter;
       Total = Total + raincounter;
+  Serial.print(" Total ");
+  Serial.print( Total);
       raincounter = 0;
+  Serial.print(" raincounter ");
+  Serial.print(  raincounter);
       Debounce2 = 1;
+  Serial.print(" debounce2 ");
+  Serial.print(  Debounce2);
       static char rainYesterday1[2];
       dtostrf(rainYesterday, 3, 0, rainYesterday1);
       client.publish("garage/rainYesterday",rainYesterday1);  //Publish to MQTT
       static char rainYesterdaymm1[2];
       rainYesterdaymm = rainYesterday/conversion;
       dtostrf(rainYesterdaymm, 4, 1, rainYesterdaymm1);
-      client.publish("garage/rainyesterdaymm",rainYesterdaymm1);  //Publish rain in mm to MQTT
-      static char Total1[2];
-      dtostrf(Total, 3, 0, Total1);
-      client.publish("garage/rainYesterday",Total1);  //Publish to MQTT
+      client.publish("garage/rainYesterdaymm",rainYesterdaymm1);  //Publish rain in mm to MQTT
+      static char rainTotalmm1[2];
+      rainTotalmm = Total/conversion;
+      dtostrf(rainTotalmm, 3, 0, rainTotalmm1);
+      client.publish("garage/Totalmm",rainTotalmm1);  //Publish to MQTT
       Debounce2 = min;
     }
   }
-
+ Serial.println(" ");
+ 
   //********************* Roller Door *****************************  
                                     //Roller Door 1 is house side Roller door 2 is Middle
                                     //Read the reed switches,create three levels 1,2,3
                                     //Test for change and publish
   Rdoor1down = digitalRead(9);   
-  Rdoor1up = digitalRead(10);
+  //Rdoor1up = digitalRead(10);
       
   if (Rdoor1up == LOW){            
     door1 = 1;    
@@ -273,13 +298,18 @@ void loop()
 //**********************************Time***************************************
 void time(){
   //get time
-  timeClient.update(); 
+  Serial.print("  test1a  ");
+  //timeClient.update(); 
+  Serial.print("  test1b  ");
+  Serial.print(daysOfTheWeek[timeClient.getDay()]);
   hours = timeClient.getHours();
   Serial.print(hours);
+  Serial.print("  test1c  ");
   min = timeClient.getMinutes();
   Serial.println(min);
   //publish time to mqtt server
     //hours
+    Serial.print("  test2  ");
   static char hours2[3];
   dtostrf(hours, 3, 0, hours2);
   client.publish("time/hours",hours2);
@@ -287,4 +317,5 @@ void time(){
   static char min2[3];
   dtostrf(min, 4, 0, min2);
   client.publish("time/mins",min2);
+  Serial.print(" : test3 : ");
 }
