@@ -21,6 +21,18 @@ byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
 IPAddress ip(192, 168, 68, 151); //ip address of device
 IPAddress server(192, 168, 68, 65); //ip address of mqtt server
 
+
+unsigned int localPort = 8888;       // local port to listen for UDP packets
+
+const char timeServer[] = "time.nist.gov"; // time.nist.gov NTP server
+
+//const int 48 = 48; // NTP time stamp is in the first 48 bytes of the message
+
+byte packetBuffer[48]; //buffer to hold incoming and outgoing packets
+
+// A UDP instance to let us send and receive packets over UDP
+EthernetUDP Udp;
+
 unsigned long Tempdelay =millis();  //for delaying temp/humidity virtualWrite
 unsigned long rainDelay =millis();  //for delaying rain virtualWrite.
 //motion sensor
@@ -44,30 +56,22 @@ int count = 1;
 bool RainSensor = 0;   
 bool LastRainSensor = 0;  
 int  Debounce = 0;   
-int  Debounce2 = 0;                           
-int raincountermm =0;
-int rainYesterdaymm = 0;
-const int  rainPin = 2;    // the pin that the rain is attached to
-int raincounter = 0;       // counter for the number of rain pulses
-//int rainState = 0;         // current state of the sensor
+int  Debounce2 = 1;                           
+float raincountermm = 0;
+float rainYesterdaymm = 0;
+float raincounter = 0;       // counter for the number of rain pulses
 int lastRainState = 0;     // previous state of the button
 int rainYesterday = 0;     //location of yesterdays rainCount
-int Total = 0;
-int rainTotalmm = 0;             //running rain total counter
+float Total = 0;
+float rainTotalmm = 0;             //running rain total counter
 float conversion = 2.8;     //Value to convert rain pulses to mm
 int SensorLight = 0;        //SensorLight set to off
 int lastsensor = 0;
-//Time
-int hours = 0;             //hour of day from NTP server (24hr clock)
+//Time        
 int min = 0;               //minutes from NTP server
+int hrs = 0;                //hour of day from NTP server (24hr clock)
 
-const long utcOffsetInSeconds = 21600;      //36000 = hours +10 for Melb
-
-char daysOfTheWeek[7][24] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-
-// Define NTP Client to get time
-EthernetUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
+//NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
@@ -109,8 +113,8 @@ void setup()
   // Allow the hardware to sort itself out
   delay(1500);
   pinMode(3, INPUT_PULLUP);           //PIR pin
-  //pinMode(4, OUTPUT);                 //Make output and high for use as pull up resitor
-  //digitalWrite(4, HIGH);
+  pinMode(4, OUTPUT);                 //Make output and high for use as pull up resitor
+  digitalWrite(4, HIGH);
   pinMode(5, INPUT_PULLUP);           //Roller Door 2 down
   pinMode(6, INPUT_PULLUP);           //Roller Door 2 up
   pinMode(7, OUTPUT);                 //Make output and high for use as pull up resitor
@@ -124,10 +128,32 @@ void setup()
   pinMode(INPUT, 13);                  //Sensor light input, 5V = on
   pinMode(19, INPUT_PULLUP);          //Pin 19 rain sensor (pull high)
   digitalWrite(19, HIGH);
-  sht20.initSHT20();                                  // Init SHT20 Sensor
+  sht20.initSHT20();                  // Init SHT20 Sensor
   delay(100);
-  sht20.checkSHT20();                                 // Check SHT20 Sensor
-  timeClient.begin();
+  sht20.checkSHT20();                  // Check SHT20 Sensor
+  Udp.begin(localPort);               //timeClient.begin();
+}
+
+void sendNTPpacket(const char * address) {
+  // set all bytes in the buffer to 0
+  memset(packetBuffer, 0, 48);
+  // Initialize values needed to form NTP request
+  // (see URL above for details on the packets)
+  packetBuffer[0] = 0b11100011;   // LI, Version, Mode
+  packetBuffer[1] = 0;     // Stratum, or type of clock
+  packetBuffer[2] = 6;     // Polling Interval
+  packetBuffer[3] = 0xEC;  // Peer Clock Precision
+  // 8 bytes of zero for Root Delay & Root Dispersion
+  packetBuffer[12]  = 49;
+  packetBuffer[13]  = 0x4E;
+  packetBuffer[14]  = 49;
+  packetBuffer[15]  = 52;
+
+  // all NTP fields have been given values, now
+  // you can send a packet requesting a timestamp:
+  Udp.beginPacket(address, 123); // NTP requests are to port 123
+  Udp.write(packetBuffer, 48);
+  Udp.endPacket();
 }
 
 void loop()
@@ -140,33 +166,25 @@ void loop()
   timedelay.update();
   //****************** Temp/Humidity ***********************
 
-  if(millis() > Tempdelay + 2000){    //delay virtualWrite by 2sec
+  if(millis() > Tempdelay + 2000){                  //delay virtualWrite by 2sec
     Tempdelay = millis(); 
     float h = sht20.readHumidity();                  // Read Humidity
     float t = sht20.readTemperature();               // Read Temperature
-    Serial.println("Test after Read Temp and Hum:");
-    Serial.print(t, 1);
-    Serial.println("   ");
-    Serial.println(h, 1);
-    dtostrf(t, 1, 1, t2);               //convert to 2 dec places
-    dtostrf(h, 1, 1, h2);               //convert to 2 dec places                    
-    client.publish("garage/Humidity",h2);  //Publish to MQTT
-    client.publish("garage/Temp",t2);      //Publish to MQTT
+        dtostrf(t, 1, 1, t2);                         //convert to 2 dec places
+    dtostrf(h, 1, 1, h2);                             //convert to 2 dec places                    
+    client.publish("garage/Humidity",h2);             //Publish to MQTT
+    client.publish("garage/Temp",t2);                  //Publish to MQTT
   }
 
   //********************* Rain Counter ******************************
 
-  if(millis() > rainDelay + 2000){    //delay virtualWrite by 2sec
+  if(millis() > rainDelay + 2000){    //delay digitalRead by 2sec
     RainSensor = digitalRead(19);
     
     if(RainSensor != LastRainSensor){
         Debounce++;
-         Serial.print("  RainSensor  ");
-         Serial.print(RainSensor);
-         Serial.print("  raincounter  ");
-         Serial.print(raincounter);
-
-      if (Debounce >10){
+         
+      if (Debounce >10){                //Debounce
         raincounter++;                  // increment rain counter
         LastRainSensor = RainSensor;
         Debounce = 0;
@@ -176,94 +194,65 @@ void loop()
   }
       
   if(raincounter!=lastRainState){
-    static char raincounter1[2];
-    dtostrf(raincounter, 3, 0, raincounter1);
+    static char raincounter1[3];
+    dtostrf(raincounter, 5, 0, raincounter1);
     client.publish("garage/raincounter",raincounter1);  //Publish to MQTT
-    static char raincountermm1[2];
+    static char raincountermm1[5];
     raincountermm = raincounter/conversion;
-    dtostrf(raincountermm, 4, 1, raincountermm1);
+    dtostrf(raincountermm, 5, 1, raincountermm1);
     client.publish("garage/raincountermm",raincountermm1);  //Publish rain in mm to MQTT
     lastRainState = raincounter;
       }
-  Serial.print(daysOfTheWeek[timeClient.getDay()]);
-  Serial.print(" hours ");
-  Serial.print(  hours);
-  Serial.print(" min ");
-  Serial.print(  min);
-
-  if(hours == 9 && min == 00)  {   
+  
+  if(hrs == 9 && min == 00)  {   
     if(Debounce2 != min){
-  Serial.print(" hours Testerday loop ");
-  Serial.print(  hours);
-  Serial.print(" min ");
-  Serial.print(  min);
       rainYesterday = raincounter;
       Total = Total + raincounter;
-  Serial.print(" Total ");
-  Serial.print( Total);
       raincounter = 0;
-  Serial.print(" raincounter ");
-  Serial.print(  raincounter);
-      Debounce2 = 1;
-  Serial.print(" debounce2 ");
-  Serial.print(  Debounce2);
-      static char rainYesterday1[2];
-      dtostrf(rainYesterday, 3, 0, rainYesterday1);
+      //Debounce2 = 1;
+      static char rainYesterday1[3];
+      dtostrf(rainYesterday, 5, 1, rainYesterday1);
       client.publish("garage/rainYesterday",rainYesterday1);  //Publish to MQTT
-      static char rainYesterdaymm1[2];
+      static char rainYesterdaymm1[5];
       rainYesterdaymm = rainYesterday/conversion;
       dtostrf(rainYesterdaymm, 4, 1, rainYesterdaymm1);
       client.publish("garage/rainYesterdaymm",rainYesterdaymm1);  //Publish rain in mm to MQTT
-      static char rainTotalmm1[2];
+      static char rainTotalmm1[5];
       rainTotalmm = Total/conversion;
-      dtostrf(rainTotalmm, 3, 0, rainTotalmm1);
+      dtostrf(rainTotalmm, 5, 2, rainTotalmm1);
       client.publish("garage/Totalmm",rainTotalmm1);  //Publish to MQTT
       Debounce2 = min;
     }
   }
- Serial.println(" ");
- 
+
   //********************* Roller Door *****************************  
-                                    //Roller Door 1 is house side Roller door 2 is Middle
-                                    //Read the reed switches,create three levels 1,2,3
-                                    //Test for change and publish
-  Rdoor1down = digitalRead(9);   
-  //Rdoor1up = digitalRead(10);
-      
+                                                          
+  Rdoor1down = digitalRead(9);     //Roller Door 1 is house side Roller door 2 is Middle
+  //Rdoor1up = digitalRead(10);     //Read the reed switches,create three levels 1,2,3
+                                     //Test for change and publish
   if (Rdoor1up == LOW){            
-    door1 = 1;    
-  }
-
+    door1 = 1;   }
   if (Rdoor1down == HIGH && Rdoor1up == HIGH){
-    door1 = 2;   
-  }
-
+    door1 = 2;   }
   if (Rdoor1down == LOW){            
-    door1 = 3;    
-  }
+    door1 = 3;  }
 
   if(door1 != lastdoor1){
     static char door1a[2];
     dtostrf(door1, 2, 0, door1a);
 
     client.publish("garage/door1",door1a);  //Publish to MQTT
-    lastdoor1 = door1;    
-  }
+    lastdoor1 = door1;  }
 
   Rdoor2down = digitalRead(5);   
   Rdoor2up = digitalRead(6);
       
   if (Rdoor2up == LOW){            
-    door2 = 1;    
-  }
-
+    door2 = 1;  }
   if (Rdoor2down == HIGH && Rdoor2up == HIGH){
-    door2 = 2;    
-  }
-
+    door2 = 2;  }
   if (Rdoor2down == LOW){            
-    door2 = 3;   
-  }
+    door2 = 3;  }
 
   if(door2 != lastdoor2){
     static char door2a[2];
@@ -297,25 +286,62 @@ void loop()
 
 //**********************************Time***************************************
 void time(){
-  //get time
-  Serial.print("  test1a  ");
-  //timeClient.update(); 
-  Serial.print("  test1b  ");
-  Serial.print(daysOfTheWeek[timeClient.getDay()]);
-  hours = timeClient.getHours();
-  Serial.print(hours);
-  Serial.print("  test1c  ");
-  min = timeClient.getMinutes();
-  Serial.println(min);
+sendNTPpacket(timeServer); // send an NTP packet to a time server
+
+  // wait to see if a reply is available
+  delay(1000);
+  if (Udp.parsePacket()) {
+    // We've received a packet, read the data from it
+    Udp.read(packetBuffer, 48); // read the packet into the buffer
+
+    // the timestamp starts at byte 40 of the received packet and is four bytes,
+    // or two words, long. First, extract the two words:
+
+    unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+    unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+    // combine the four bytes (two words) into a long integer
+    // this is NTP time (seconds since Jan 1 1900):
+    unsigned long secsSince1900 = highWord << 16 | lowWord;
+   // Serial.print("Seconds since Jan 1 1900 = ");
+    //Serial.println(secsSince1900);
+
+                  // now convert NTP time into everyday time:
+   // Serial.print("Unix time = ");
+                 // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
+    const unsigned long seventyYears = 2208988800UL;
+                  // subtract seventy years:
+    unsigned long epoch = (secsSince1900 - seventyYears) +36000;
+                // print Unix time:
+    //Serial.println(epoch);
+
+       
+    // print the hour, minute and second:
+    Serial.print("The Buninyong time is ");       // UTC is the time at Greenwich Meridian (GMT)
+    Serial.print((epoch  % 86400L) / 3600); // print the hour (86400 equals secs per day)
+    Serial.print(':');
+    hrs = ((epoch  % 86400L) / 3600);
+    if (((epoch % 3600) / 60) < 10) {
+    // In the first 10 minutes of each hour, we'll want a leading '0'
+    Serial.print('0');
+    }
+    
+    Serial.print((epoch  % 3600) / 60); // print the minute (3600 equals secs per minute)
+    Serial.print(':');
+    min = ((epoch  % 3600) / 60);
+    if ((epoch % 60) < 10) {
+      // In the first 10 seconds of each minute, we'll want a leading '0'
+      Serial.print('0');
+    }
+    Serial.println(epoch % 60); // print the second
+  }
   //publish time to mqtt server
-    //hours
-    Serial.print("  test2  ");
-  static char hours2[3];
-  dtostrf(hours, 3, 0, hours2);
-  client.publish("time/hours",hours2);
-    //mins
+    //hrs
+  static char hrs2[3];
+  dtostrf(hrs, 3, 0, hrs2);
+  client.publish("time/hrs",hrs2);
+    //min
   static char min2[3];
   dtostrf(min, 4, 0, min2);
-  client.publish("time/mins",min2);
-  Serial.print(" : test3 : ");
+  client.publish("time/min",min2);
+  
 }
